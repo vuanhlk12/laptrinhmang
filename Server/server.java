@@ -24,7 +24,7 @@ public class server {
     }
 
     public static int handlerCommand(String userName, List<user> listUser, Socket soc, String command)
-            throws IOException {
+            throws IOException, InterruptedException {
         int removeFlag = 0;
         if (command.equals("/show")) {
             sendOnline(listUser, soc);
@@ -45,18 +45,52 @@ public class server {
                 System.out.println("> Error command!");
             } else {
                 String fileName = arrCommand[1];
-                SendFile(soc, fileName);
+                SendFile(soc, fileName, false);
             }
         } else if (command.startsWith("FILE OK")) {
             ReceiveFile(soc, command);
         } else if (command.startsWith("/up")) {
-        } else {
+            //do nothing
+        } else if (command.startsWith("/sendfile")) {
+            //do nothing
+        } else if (command.startsWith("START SEND FILE")) {
+            String[] arrCommand = command.split(": ", 3);
+            if (arrCommand.length < 3 || arrCommand[1].equals("") || arrCommand[2].equals("")) {
+                System.out.println("> Error command!");
+            } else {
+                String name = arrCommand[1].toUpperCase();
+                String fileName = arrCommand[2];
+                SendFileTo(userName, listUser, name, fileName);
+            }
+        } else if (!command.startsWith("/")) {
             sendAll(userName, listUser, soc);
         }
         return removeFlag;
     }
 
-    public static void ReceiveFile(Socket soc, String msg) throws IOException {
+    private static void SendFileTo(String userName, List<user> listUser, String name, String fileName) throws IOException, InterruptedException {
+
+        for (user _user : listUser) {
+            Socket s = _user.soc;
+            if (s == null)
+                listUser.remove(_user);
+            else if (_user.name.equals(name)) {
+                PrintWriter out = new PrintWriter(s.getOutputStream(), true);
+                out.println("[" + userName + "] -> Sending file " + fileName);
+                message = "Send " + fileName + " to " + name;
+                sendToName("Notification", listUser, userName);
+                SendFile(_user.soc, fileName, true);
+                return;
+            }
+        }
+
+        if (!userName.equals("Notification")) {
+            message = "User " + name + " not found";
+            sendToName("Notification", listUser, userName);
+        }
+    }
+
+    public static synchronized void ReceiveFile(Socket soc, String msg) throws IOException {
         DataInputStream dataInputStream = new DataInputStream(soc.getInputStream());
 
         String fileName = "";
@@ -85,7 +119,7 @@ public class server {
 
     }
 
-    public static void SendFile(Socket soc, String fileName) throws IOException {
+    public static void SendFile(Socket soc, String fileName, boolean delete) throws IOException {
         DataOutputStream dataOutputStream = new DataOutputStream(soc.getOutputStream());
 
         System.out.println("Client needs file: " + fileName);
@@ -109,6 +143,15 @@ public class server {
             }
             System.out.println(" Sent!");
             fileInputStream.close();
+        }
+
+        if(delete){
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    file.delete();
+                }
+            }).start();
         }
     }
 
@@ -236,7 +279,7 @@ public class server {
                                     break;// đảm bảo ko có luồng zombie
                                 }
                             }
-                        } catch (IOException e) {
+                        } catch (IOException | InterruptedException e) {
                             e.printStackTrace();
                         }
                     }

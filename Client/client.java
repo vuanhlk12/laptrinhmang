@@ -32,7 +32,7 @@ public class client {
             FileOutputStream fileOutputStream = new FileOutputStream(clientFolder + "/" + fileName);
             byte[] receiveBytes = new byte[bufferSize];
             int n;
-            System.out.println(" Receiving " + fileSize + " Bytes...");
+            System.out.println(" Receiving " + fileName + ", file size: " + fileSize + " Bytes...");
             for (long doneSize = 0L; doneSize < fileSize; doneSize += (long) n) {
                 n = dataInputStream.read(receiveBytes);
                 fileOutputStream.write(receiveBytes, 0, n);
@@ -80,16 +80,9 @@ public class client {
         }
     }
 
-    public static void upFile(Socket soc, String msg, PrintWriter out, DataOutputStream dataOutputStream) throws IOException {
+    public static synchronized void upFile(Socket soc, String fileName, PrintWriter out, DataOutputStream dataOutputStream, String msg) throws IOException {
         //dataOutputStream = new DataOutputStream(soc.getOutputStream());
-        String fileName = "";
-        String[] arrCommand = msg.split(" ", 2);
-        if (arrCommand.length < 2 || arrCommand[1].equals("")) {
-            System.out.println("> Error command!");
-            return;
-        } else {
-            fileName = arrCommand[1];
-        }
+
 
         System.out.println("Server needs file: " + fileName);
         File file = new File(clientFolder + "/" + fileName);
@@ -108,7 +101,7 @@ public class client {
             //out.println(fileSize);//send file not found
             byte[] sendBytes = new byte[bufferSize];
             int n;
-            System.out.println(" Sending " + fileSize + " Bytes...");
+            System.out.println(" Sending " + fileName + ", file size: " + fileSize + " Bytes...");
             while ((n = fileInputStream.read(sendBytes)) != -1) {
                 dataOutputStream.write(sendBytes, 0, n);
             }
@@ -116,6 +109,21 @@ public class client {
 
             //dataOutputStream.close();
             fileInputStream.close();
+        }
+
+        if(!msg.equals("")){
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    PrintWriter out = null;
+                    try {
+                        out = new PrintWriter(soc.getOutputStream(), true);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    out.println(msg);//send command to start send file to client
+                }
+            }).start();
         }
     }
 
@@ -141,7 +149,29 @@ public class client {
                 }
 
                 if (msg.startsWith("/up")) {
-                    upFile(soc, msg, out, dataOutputStream);
+                    String fileName = "";
+                    String[] arrCommand = msg.split(" ", 2);
+                    if (arrCommand.length < 2 || arrCommand[1].equals("")) {
+                        System.out.println("> Error command!");
+                        return;
+                    } else {
+                        fileName = arrCommand[1];
+                    }
+                    upFile(soc, fileName, out, dataOutputStream, "");
+                }
+
+                if (msg.startsWith("/sendfile")) {
+                    String fileName = "", name = "";
+                    String[] arrCommand = msg.split(" ", 3);
+                    if (arrCommand.length < 3 || arrCommand[1].equals("") || arrCommand[2].equals("")) {
+                        System.out.println("> Error command!");
+                        return;
+                    } else {
+                        name = arrCommand[1];
+                        fileName = arrCommand[2];
+                    }
+                    String message = "START SEND FILE: " + name + ": " + fileName;
+                    upFile(soc, fileName, out, dataOutputStream, message);
                 }
 
                 if (msg.equals("/exit")) {
@@ -161,7 +191,7 @@ public class client {
 
     public static void main(String[] args) {
         try {
-            //final Socket soc = new Socket("192.168.0.103", 9000);
+            //final Socket soc = new Socket("192.168.0.104", 9000);
             final Socket soc = new Socket("localhost", 9000);
 
             // validate name
