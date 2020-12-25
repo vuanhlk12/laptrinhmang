@@ -5,7 +5,8 @@ import java.util.Scanner;
 public class client {
     private static String name;
 
-    private static String clientFolder = "D:/BuiVuAnh_11/Client/ClientFile";
+    //private static String clientFolder = "Client/ClientFile";
+    private static String clientFolder = "C:\\Users\\vuanh\\OneDrive\\Máy tính\\laptrinhmang\\chatroom\\Client\\ClientFile";
     private static int bufferSize = 1024;
 
     public static void overrideLine() {

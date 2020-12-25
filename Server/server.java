@@ -6,7 +6,8 @@ import java.util.*;
 public class server {
 
     private static String message = "";
-    private static String serverFolder = "D:/BuiVuAnh_11/Server/ServerFile";
+    //private static String serverFolder = "Server/ServerFile";
+    private static String serverFolder = "C:\\Users\\vuanh\\OneDrive\\Máy tính\\laptrinhmang\\chatroom\\Server\\ServerFile";
 
     private static int bufferSize = 1024;
 
